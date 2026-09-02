@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-api
+  namespace: order-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-api
+  template:
+    metadata:
+      labels:
+        app: order-api
+    spec:
+      initContainers:
+      - name: install-deps
+        image: python:3.11-slim
+        command: ["pip", "install", "flask", "pymongo", "--target", "/deps"]
+        volumeMounts:
+        - name: deps
+          mountPath: /deps
+      containers:
+      - name: order-api
+        image: python:3.11-slim
+        command: ["python", "/app/app.py"]
+        env:
+        - name: PYTHONPATH
+          value: "/deps"
+        envFrom:
+        - configMapRef:
+            name: order-api-config
+        - secretRef:
+            name: order-api-secret
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: app-code
+          mountPath: /app
+        - name: deps
+          mountPath: /deps
+      volumes:
+      - name: app-code
+        configMap:
+          name: order-api-config
+          items:
+          - key: app.py
+            path: app.py
+      - name: deps
+        emptyDir: {}
