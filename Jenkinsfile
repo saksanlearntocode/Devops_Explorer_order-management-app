@@ -12,13 +12,12 @@ pipeline {
                 checkout scm
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 sh '''
                     docker build \
                         -t ${IMAGE_NAME}:${BUILD_NUMBER} \
-                        .
+                        ./cluster1/order-api
                 '''
             }
         }
