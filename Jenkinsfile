@@ -72,10 +72,11 @@ pipeline {
 
                         kubectl config use-context jenkins-context
 
-                        helm upgrade order-api helm/order-api \
-                        -n order-system \
-                        --set image.repository=${IMAGE_NAME} \
-                        --set image.tag=${BUILD_NUMBER}
+                        helm upgrade order-api cluster1/order-api/helm/order-api \
+                            -n order-system \
+                            --set image.repository=${IMAGE_NAME} \
+                            --set image.tag=${BUILD_NUMBER}
+
 
                         kubectl rollout status deployment/order-api \
                         -n order-system \
