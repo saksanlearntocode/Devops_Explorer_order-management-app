@@ -49,20 +49,54 @@ pipeline {
                 }
             }
         }
-
-        stage('Show Image') {
+        stage('Deploy to Kubernetes') {
             steps {
-                sh '''
-                    echo "================================"
-                    echo "Build Number: ${BUILD_NUMBER}"
-                    echo "Image: ${IMAGE_NAME}:${BUILD_NUMBER}"
-                    echo "================================"
+                withCredentials([
+                    string(
+                        credentialsId: 'k8s-jenkins-token',
+                        variable: 'K8S_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        kubectl config set-cluster cluster1 \
+                        --server=https://192.168.56.10:6443 \
+                        --insecure-skip-tls-verify=true
 
-                    docker images ${IMAGE_NAME}
-                '''
+                        kubectl config set-credentials jenkins \
+                        --token="$K8S_TOKEN"
+
+                        kubectl config set-context jenkins-context \
+                        --cluster=cluster1 \
+                        --user=jenkins \
+                        --namespace=order-system
+
+                        kubectl config use-context jenkins-context
+
+                        helm upgrade order-api helm/order-api \
+                        -n order-system \
+                        --set image.repository=${IMAGE_NAME} \
+                        --set image.tag=${BUILD_NUMBER}
+
+                        kubectl rollout status deployment/order-api \
+                        -n order-system \
+                        --timeout=120s
+                    '''
+                }
             }
         }
-    }
+    //     stage('Show Image') {
+    //         steps {
+    //             sh '''
+    //                 echo "================================"
+    //                 echo "Build Number: ${BUILD_NUMBER}"
+    //                 echo "Image: ${IMAGE_NAME}:${BUILD_NUMBER}"
+    //                 echo "================================"
+
+    //                 docker images ${IMAGE_NAME}
+    //             '''
+    //         }
+    //     }
+    // }
 
     post {
         success {
