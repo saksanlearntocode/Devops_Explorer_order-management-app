@@ -59,7 +59,7 @@ pipeline {
                 ]) {
                     sh '''
                         kubectl config set-cluster cluster1 \
-                        --server=https://192.168.56.10:6443 \
+                        --server=https://192.168.56.11:6443 \
                         --insecure-skip-tls-verify=true
 
                         kubectl config set-credentials jenkins \
